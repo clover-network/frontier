@@ -542,7 +542,7 @@ impl<T: Config> Module<T> {
 	pub fn remove_account(address: &H160) {
 		if AccountCodes::contains_key(address) {
 			let account_id = T::AddressMapping::into_account_id(*address);
-			frame_system::Module::<T>::dec_ref(&account_id);
+			let _ = frame_system::Module::<T>::dec_consumers(&account_id);
 		}
 
 		AccountCodes::remove(address);
@@ -557,7 +557,7 @@ impl<T: Config> Module<T> {
 
 		if !AccountCodes::contains_key(&address) {
 			let account_id = T::AddressMapping::into_account_id(address);
-			frame_system::Module::<T>::inc_ref(&account_id);
+			let _ = frame_system::Module::<T>::inc_consumers(&account_id);
 		}
 
 		AccountCodes::insert(address, code);

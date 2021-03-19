@@ -51,6 +51,7 @@ impl<Block: BlockT, C, B> MappingSyncWorker<Block, C, B> {
 		substrate_backend: Arc<B>,
 		frontier_backend: Arc<fc_db::Backend<Block>>,
 	) -> Self {
+		log::info!("starting mapping sync worker");
 		Self {
 			import_notifications,
 			timeout,
@@ -99,12 +100,13 @@ impl<Block: BlockT, C, B> Stream for MappingSyncWorker<Block, C, B> where
 			fire = true;
 		}
 
+		log::debug!(target: "mapping-sync", "firing sync");
 		if fire {
 			self.inner_delay = None;
 
 			match crate::sync_blocks(
 				self.client.as_ref(),
-				self.substrate_backend.blockchain(),
+				self.substrate_backend.as_ref(),
 				self.frontier_backend.as_ref(),
 				LIMIT,
 			) {

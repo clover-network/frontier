@@ -38,6 +38,7 @@ pub fn sync_block<Block: BlockT>(
 		ethereum_block_hash: post_hashes.block_hash,
 		ethereum_transaction_hashes: post_hashes.transaction_hashes,
 	};
+	log::info!("writing hashes: {:?}", mapping_commitment.block_hash);
 	backend.mapping().write_hashes(mapping_commitment)?;
 
 	Ok(())
@@ -68,17 +69,26 @@ pub fn sync_genesis_block<Block: BlockT, C>(
 
 pub fn sync_one_level<Block: BlockT, C, B>(
 	client: &C,
-	substrate_backend: &B,
+	backend: &B,
 	frontier_backend: &fc_db::Backend<Block>,
 ) -> Result<bool, String> where
 	C: ProvideRuntimeApi<Block> + Send + Sync + HeaderBackend<Block> + BlockOf,
 	C::Api: EthereumRuntimeRPCApi<Block>,
-	B: sp_blockchain::HeaderBackend<Block> + sp_blockchain::Backend<Block>,
+	B: sc_client_api::Backend<Block>,
 {
+	use sp_blockchain::Backend;
 	let mut current_syncing_tips = frontier_backend.meta().current_syncing_tips()?;
+
+	let substrate_backend = backend.blockchain();
 
 	if current_syncing_tips.len() == 0 {
 		// Sync genesis block.
+	    log::debug!(target: "mapping-sync", "syncing genisis ");
+
+		//
+		// make sure we have some finalized block
+		let _ = substrate_backend.last_finalized()
+				.map_err(|e| format!("error get finalzied block: {:?}", e))?;
 
 		let header = substrate_backend.header(BlockId::Number(Zero::zero()))
 			.map_err(|e| format!("{:?}", e))?
@@ -90,17 +100,53 @@ pub fn sync_one_level<Block: BlockT, C, B>(
 
 		Ok(true)
 	} else {
+		log::debug!(target: "mapping-sync", "syncing data");
 		let mut syncing_tip_and_children = None;
+		let last_finalized_block = substrate_backend.last_finalized()
+							 .map_err(|e| format!("error get finalzied block: {:?}", e))?;
+		let last_finalized = substrate_backend.block_number_from_id(&BlockId::Hash(last_finalized_block))
+							 .map_err(|e| format!("error get finalzied block number: {:?}", e))?
+							 .ok_or(format!(""))?;
+
+		let mut actual_children_count = 0;
 
 		for tip in &current_syncing_tips {
 			let children = substrate_backend.children(*tip)
 				.map_err(|e| format!("{:?}", e))?;
 
-			if children.len() > 0 {
-				syncing_tip_and_children = Some((*tip, children));
-				break
+			actual_children_count = children.len();
+			log::debug!(target: "mapping-sync", "syncing tip: {:?}, children: {:?}", tip, children);
+			// make sure children is finalized
+			let child = {
+				let lock = backend.get_import_lock();
+				children.iter().find(|c| {
+					match substrate_backend.best_containing(*c.clone(), None, lock) {
+						Ok(Some(_)) => true,
+						Ok(_) => false,
+						Err(e) => {
+							log::warn!("failed to find best contains for {:?}", c);
+							false
+						},
+					}
+				})
+			};
+
+			if let Some(child) = child {
+				let child_number = substrate_backend.block_number_from_id(&BlockId::Hash(child.clone()))
+							 .map_err(|e| format!("error get child block number: {:?}", e))?
+							 .ok_or(format!("error get child number"))?;
+				log::debug!(target: "mapping-sync", "child number: {:?}, last finalized: {:?}", child_number, last_finalized);
+				if child_number <= last_finalized {
+					syncing_tip_and_children = Some((*tip, vec![child.clone()]));
+					break
+				}
+			}
+			if actual_children_count > 0 {
+				return Ok(false)
 			}
 		}
+
+		log::debug!(target: "mapping-sync", "syncing tips and children: {:?}", syncing_tip_and_children);
 
 		if let Some((syncing_tip, children)) = syncing_tip_and_children {
 			current_syncing_tips.retain(|tip| tip != &syncing_tip);
@@ -110,6 +156,7 @@ pub fn sync_one_level<Block: BlockT, C, B>(
 					.map_err(|e| format!("{:?}", e))?
 					.ok_or("Header not found".to_string())?;
 
+				log::debug!(target: "mapping-sync", "sync block!: {:?}", header);
 				sync_block(frontier_backend, &header)?;
 				current_syncing_tips.push(child);
 			}
@@ -117,6 +164,7 @@ pub fn sync_one_level<Block: BlockT, C, B>(
 
 			Ok(true)
 		} else {
+			log::debug!(target: "mapping-sync", "no syncing tip and children");
 			Ok(false)
 		}
 	}
@@ -130,7 +178,7 @@ pub fn sync_blocks<Block: BlockT, C, B>(
 ) -> Result<bool, String> where
 	C: ProvideRuntimeApi<Block> + Send + Sync + HeaderBackend<Block> + BlockOf,
 	C::Api: EthereumRuntimeRPCApi<Block>,
-	B: sp_blockchain::HeaderBackend<Block> + sp_blockchain::Backend<Block>,
+	B: sc_client_api::Backend<Block>,
 {
 	let mut synced_any = false;
 

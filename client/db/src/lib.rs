@@ -116,6 +116,7 @@ impl<Block: BlockT> MetaDb<Block> {
 	pub fn write_current_syncing_tips(&self, tips: Vec<Block::Hash>) -> Result<(), String> {
 		let mut transaction = sp_database::Transaction::new();
 
+		log::debug!(target: "mapping-sync", "writing current sync tips: {:?}", tips);
 		transaction.set(
 			crate::columns::META,
 			crate::static_keys::CURRENT_SYNCING_TIPS,
@@ -172,6 +173,7 @@ impl<Block: BlockT> MappingDb<Block> {
 		&self,
 		commitment: MappingCommitment<Block>,
 	) -> Result<(), String> {
+		log::debug!(target: "mapping-sync", "writing hashes for block: {:?}", commitment.ethereum_block_hash);
 		let _lock = self.write_lock.lock();
 
 		let mut transaction = sp_database::Transaction::new();
@@ -191,6 +193,7 @@ impl<Block: BlockT> MappingDb<Block> {
 				ethereum_block_hash: commitment.ethereum_block_hash,
 				ethereum_index: i as u32,
 			});
+			log::debug!(target: "mapping-sync", "writing transaction hash: {:?}", ethereum_transaction_hash);
 			transaction.set(
 				crate::columns::TRANSACTION_MAPPING,
 				&ethereum_transaction_hash.encode(),

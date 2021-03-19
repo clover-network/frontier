@@ -38,7 +38,7 @@ pub fn sync_block<Block: BlockT>(
 		ethereum_block_hash: post_hashes.block_hash,
 		ethereum_transaction_hashes: post_hashes.transaction_hashes,
 	};
-	log::info!("writing hashes: {:?}", mapping_commitment.block_hash);
+	log::debug!(target: "mapping-sync", "writing hashes: {:?}", mapping_commitment.block_hash);
 	backend.mapping().write_hashes(mapping_commitment)?;
 
 	Ok(())

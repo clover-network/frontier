@@ -33,11 +33,13 @@ pub fn sync_block<Block: BlockT>(
 	let log = fp_consensus::find_log(header.digest()).map_err(|e| format!("{:?}", e))?;
 	let post_hashes = log.into_hashes();
 
+	let tx_hashes = post_hashes.transaction_hashes.clone();
 	let mapping_commitment = fc_db::MappingCommitment {
 		block_hash: header.hash(),
 		ethereum_block_hash: post_hashes.block_hash,
 		ethereum_transaction_hashes: post_hashes.transaction_hashes,
 	};
+	log::debug!(target: "mapping-sync", "writing commitment: {:?}, tx: {:?}", header.hash(), tx_hashes);
 	backend.mapping().write_hashes(mapping_commitment)?;
 
 	Ok(())
@@ -66,6 +68,60 @@ pub fn sync_genesis_block<Block: BlockT, C>(
 	Ok(())
 }
 
+pub fn rollback_last_block<Block: BlockT>(
+	frontier_backend: &fc_db::Backend<Block>,
+) -> Result<bool, String>
+{
+	let last_synced_block = frontier_backend.meta().last_synced_block()
+		.map_err(|e| format!("{:?}", e))?
+		.ok_or("failed to get last synced block")?;
+	log::debug!(target: "mapping-sync", "rollback block: {:?}", last_synced_block);
+	frontier_backend.mapping().rollback_block_by_id(&last_synced_block.hash)?;
+	frontier_backend.meta().remove_block(&last_synced_block)?;
+
+	if last_synced_block.number <= 0.into() { // already at genesis block, clear the last synced block
+		frontier_backend.meta().clear_last_synced_block()?;
+	} else {
+		// should set the last synced block to the parent
+		let number = last_synced_block.number - 1.into();
+		let hash = frontier_backend.meta().get_synced_block_hash(&number)?;
+		frontier_backend.meta().write_last_synced_block(&hash, &number)?;
+	}
+
+	Ok(true)
+}
+
+pub fn eusure_synced_blocks<Block: BlockT, B>(
+	substrate_backend: &B,
+	frontier_backend: &fc_db::Backend<Block>,
+) -> Result<(), String> where
+	B: sp_blockchain::HeaderBackend<Block> + sp_blockchain::Backend<Block>,
+{
+	loop {
+		let last_synced_block = frontier_backend.meta().last_synced_block()?;
+		// have synced some blocks
+		if let Some(last_synced_block) = last_synced_block {
+			// need to check last synced block is still in the chain
+			// we need rollback to the last block that in the chain
+			let header_on_chain = substrate_backend.header(BlockId::Number(last_synced_block.number))
+				.map_err(|e| format!("{:?}", e))?;
+			if let Some(header_on_chain) = header_on_chain {
+				if header_on_chain.hash() != last_synced_block.hash {
+					log::debug!(target: "mapping-sync", "last synced block hash doesn't match with chain data, last: {:?}, on chain: {:?}", last_synced_block, header_on_chain);
+					rollback_last_block(frontier_backend)?;
+				} else {
+					break;
+				}
+			} else {
+				break;
+			}
+		} else {
+			break;
+		}
+	}
+	Ok(())
+}
+
 pub fn sync_one_block<Block: BlockT, C, B>(
 	client: &C,
 	substrate_backend: &B,
@@ -75,49 +131,35 @@ pub fn sync_one_block<Block: BlockT, C, B>(
 	C::Api: EthereumRuntimeRPCApi<Block>,
 	B: sp_blockchain::HeaderBackend<Block> + sp_blockchain::Backend<Block>,
 {
-	let mut current_syncing_tips = frontier_backend.meta().current_syncing_tips()?;
+	// make sure the synced blocks are on the main chain
+	eusure_synced_blocks(substrate_backend, frontier_backend)?;
 
-	if current_syncing_tips.is_empty() {
-		let mut leaves = substrate_backend.leaves().map_err(|e| format!("{:?}", e))?;
-		if leaves.is_empty() {
+	let last_synced_block = frontier_backend.meta().last_synced_block()?;
+	// have synced some blocks
+	if let Some(last_synced_block) = last_synced_block {
+		let block_number = last_synced_block.number + 1.into();
+		if substrate_backend.info().best_number < block_number {
+			log::debug!(target: "mapping-sync", "{:?} is ahead of best block", block_number);
 			return Ok(false)
 		}
 
-		current_syncing_tips.append(&mut leaves);
-	}
+		let header = substrate_backend.header(BlockId::Number(last_synced_block.number + 1.into()))
+			.map_err(|e| format!("{:?}", e))?
+			.ok_or("Block header not found".to_string())?;
 
-	let mut operating_tip = None;
+		sync_block(frontier_backend, &header)?;
+		frontier_backend.meta().write_last_synced_block(&header.hash(), &header.number())?;
 
-	while let Some(checking_tip) = current_syncing_tips.pop() {
-		if !frontier_backend.mapping().is_synced(&checking_tip).map_err(|e| format!("{:?}", e))? {
-			operating_tip = Some(checking_tip);
-			break
-		}
-	}
-
-	let operating_tip = match operating_tip {
-		Some(operating_tip) => operating_tip,
-		None => {
-			frontier_backend.meta().write_current_syncing_tips(current_syncing_tips)?;
-			return Ok(false)
-		}
-	};
-
-	let operating_header = substrate_backend.header(BlockId::Hash(operating_tip))
-		.map_err(|e| format!("{:?}", e))?
-		.ok_or("Header not found".to_string())?;
-
-	if operating_header.number() == &Zero::zero() {
-		sync_genesis_block(client, frontier_backend, &operating_header)?;
-
-		frontier_backend.meta().write_current_syncing_tips(current_syncing_tips)?;
-		Ok(true)
+		return Ok(true)
 	} else {
-		sync_block(frontier_backend, &operating_header)?;
-
-		current_syncing_tips.push(*operating_header.parent_hash());
-		frontier_backend.meta().write_current_syncing_tips(current_syncing_tips)?;
-		Ok(true)
+		let header = substrate_backend.header(BlockId::Number(Zero::zero()))
+			.map_err(|e| format!("{:?}", e))?
+			.ok_or("Genesis header not found".to_string())?;
+        log::info!(target: "mapping-sync", "start sync genesis block");
+		// no block synced, start with genesis block
+		sync_genesis_block(client, frontier_backend, &header)?;
+		frontier_backend.meta().write_last_synced_block(&header.hash(), &header.number())?;
+		return Ok(true)
 	}
 }
 

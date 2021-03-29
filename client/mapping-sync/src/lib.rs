@@ -79,11 +79,11 @@ pub fn rollback_last_block<Block: BlockT>(
 	frontier_backend.mapping().rollback_block_by_id(&last_synced_block.hash)?;
 	frontier_backend.meta().remove_block(&last_synced_block)?;
 
-	if last_synced_block.number <= 0.into() { // already at genesis block, clear the last synced block
+	if last_synced_block.number <= 0u32.into() { // already at genesis block, clear the last synced block
 		frontier_backend.meta().clear_last_synced_block()?;
 	} else {
 		// should set the last synced block to the parent
-		let number = last_synced_block.number - 1.into();
+		let number = last_synced_block.number - 1u32.into();
 		let hash = frontier_backend.meta().get_synced_block_hash(&number)?;
 		frontier_backend.meta().write_last_synced_block(&hash, &number)?;
 	}
@@ -137,13 +137,13 @@ pub fn sync_one_block<Block: BlockT, C, B>(
 	let last_synced_block = frontier_backend.meta().last_synced_block()?;
 	// have synced some blocks
 	if let Some(last_synced_block) = last_synced_block {
-		let block_number = last_synced_block.number + 1.into();
+		let block_number = last_synced_block.number + 1u32.into();
 		if substrate_backend.info().best_number < block_number {
 			log::debug!(target: "mapping-sync", "{:?} is ahead of best block", block_number);
 			return Ok(false)
 		}
 
-		let header = substrate_backend.header(BlockId::Number(last_synced_block.number + 1.into()))
+		let header = substrate_backend.header(BlockId::Number(last_synced_block.number + 1u32.into()))
 			.map_err(|e| format!("{:?}", e))?
 			.ok_or("Block header not found".to_string())?;
 

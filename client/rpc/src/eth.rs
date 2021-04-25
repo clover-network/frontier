@@ -677,10 +677,16 @@ impl<B, C, P, CT, BE, H: ExHashT> EthApiT for EthApi<B, C, P, CT, BE, H> where
 			Err(e) => return Box::new(future::result(Err(e))),
 		};
 
+		// limit gas to u32::max while sending transaction
+		let mut gas_limit = request.gas.unwrap_or(U256::max_value());
+		if gas_limit > u32::max_value().into() {
+			gas_limit  = u32::max_value().into();
+		}
+
 		let message = ethereum::TransactionMessage {
 			nonce,
 			gas_price: request.gas_price.unwrap_or(U256::from(1)),
-			gas_limit: request.gas.unwrap_or(U256::max_value()),
+			gas_limit,
 			value: request.value.unwrap_or(U256::zero()),
 			input: request.data.map(|s| s.into_vec()).unwrap_or_default(),
 			action: match request.to {
@@ -1084,8 +1090,10 @@ impl<B, C, P, CT, BE, H: ExHashT> EthApiT for EthApi<B, C, P, CT, BE, H> where
 					to: status.to,
 					block_number: Some(block.header.number),
 					cumulative_gas_used: {
-						let cumulative_gas: u32 = cumulative_receipts.iter().map(|r| {
-							r.used_gas.as_u32()
+						// max gas limit is u32::max_value()
+						// it's safe to use u64 as the cumulatived value
+						let cumulative_gas: u64 = cumulative_receipts.iter().map(|r| {
+							r.used_gas.as_u64()
 						}).sum();
 						U256::from(cumulative_gas)
 					},

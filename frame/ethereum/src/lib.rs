@@ -207,6 +207,10 @@ impl<T: Config> frame_support::unsigned::ValidateUnsigned for Module<T> {
 				return InvalidTransaction::Stale.into();
 			}
 
+			if transaction.gas_limit > T::BlockGasLimit::get() {
+				return InvalidTransaction::ExhaustsResources.into();
+			}
+
 			let fee = transaction.gas_price.saturating_mul(transaction.gas_limit);
 			let total_payment = transaction.value.saturating_add(fee);
 			if account_data.balance < total_payment {

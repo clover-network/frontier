@@ -51,6 +51,8 @@ use codec::{self, Encode, Decode};
 use pallet_ethereum::EthereumStorageSchema;
 use crate::overrides::{StorageOverride, RuntimeApiStorageOverride};
 
+const TransactionGasLimit: u32 = 10_000_000;
+
 pub struct EthApi<B: BlockT, C, P, CT, BE, H: ExHashT> {
 	pool: Arc<P>,
 	client: Arc<C>,
@@ -679,8 +681,8 @@ impl<B, C, P, CT, BE, H: ExHashT> EthApiT for EthApi<B, C, P, CT, BE, H> where
 
 		// limit gas to u32::max while sending transaction
 		let mut gas_limit = request.gas.unwrap_or(U256::max_value());
-		if gas_limit > u32::max_value().into() {
-			gas_limit  = u32::max_value().into();
+		if gas_limit > TransactionGasLimit.into() {
+			gas_limit = TransactionGasLimit.into();
 		}
 
 		let message = ethereum::TransactionMessage {
@@ -800,7 +802,10 @@ impl<B, C, P, CT, BE, H: ExHashT> EthApiT for EthApi<B, C, P, CT, BE, H> where
 			nonce
 		} = request;
 
-		let gas_limit = gas.unwrap_or(U256::max_value()); // TODO: set a limit
+		let mut gas_limit = gas.unwrap_or(U256::max_value()); // TODO: set a limit
+		if gas_limit > TransactionGasLimit.into() {
+			gas_limit = TransactionGasLimit.into();
+		}
 		let data = data.map(|d| d.0).unwrap_or_default();
 
 		match to {
@@ -860,7 +865,10 @@ impl<B, C, P, CT, BE, H: ExHashT> EthApiT for EthApi<B, C, P, CT, BE, H> where
 				nonce
 			} = request;
 
-			let gas_limit = gas.unwrap_or(U256::max_value()); // TODO: set a limit
+			let mut gas_limit = gas.unwrap_or(U256::max_value()); // TODO: set a limit
+			if gas_limit > TransactionGasLimit.into() {
+				gas_limit = TransactionGasLimit.into();
+			}
 			let data = data.map(|d| d.0).unwrap_or_default();
 
 			let used_gas = match to {

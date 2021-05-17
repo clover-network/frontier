@@ -1,12 +1,12 @@
 [package]
 name = "fp-consensus"
-version = "0.1.0-clover"
+version = "1.0.0-clover"
 authors = ["Parity Technologies <admin@parity.io>"]
 description = "Primitives for Frontier consensus"
 edition = "2018"
 license = "Apache-2.0"
 homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/substrate/"
+repository = "https://github.com/paritytech/frontier/"
 
 [dependencies]
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }

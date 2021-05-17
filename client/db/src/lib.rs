@@ -20,11 +20,15 @@ mod utils;
 
 pub use sp_database::Database;
 
-use std::{sync::Arc, path::{Path, PathBuf}, marker::PhantomData};
+use codec::{Decode, Encode};
+use parking_lot::Mutex;
 use sp_core::H256;
 use sp_runtime::traits::{Block as BlockT, NumberFor};
-use parking_lot::Mutex;
-use codec::{Encode, Decode};
+use std::{
+	marker::PhantomData,
+	path::{Path, PathBuf},
+	sync::Arc,
+};
 
 const DB_HASH_LEN: usize = 32;
 /// Hash type that this backend uses for the database.
@@ -71,7 +75,7 @@ pub(crate) mod columns {
 #[derive(Debug, Clone, Encode, Decode)]
 pub struct SyncedBlockInfo<Block: BlockT> {
 	pub hash: Block::Hash,
-	pub number: NumberFor::<Block>,
+	pub number: NumberFor<Block>,
 }
 
 pub(crate) mod static_keys {
@@ -117,23 +121,36 @@ pub struct MetaDb<Block: BlockT> {
 
 impl<Block: BlockT> MetaDb<Block> {
 	pub fn current_syncing_tips(&self) -> Result<Vec<Block::Hash>, String> {
-		match self.db.get(crate::columns::META, &crate::static_keys::CURRENT_SYNCING_TIPS) {
-			Some(raw) => Ok(Vec::<Block::Hash>::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e))?),
+		match self.db.get(
+			crate::columns::META,
+			&crate::static_keys::CURRENT_SYNCING_TIPS,
+		) {
+			Some(raw) => {
+				Ok(Vec::<Block::Hash>::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e))?)
+			}
 			None => Ok(Vec::new()),
 		}
 	}
 
 	pub fn last_synced_block(&self) -> Result<Option<SyncedBlockInfo<Block>>, String> {
-		match self.db.get(crate::columns::META, &crate::static_keys::LAST_SYNCED_BLOCK) {
+		match self
+			.db
+			.get(crate::columns::META, &crate::static_keys::LAST_SYNCED_BLOCK)
+		{
 			Some(raw) => {
-				let info = SyncedBlockInfo::<Block>::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e))?;
+				let info = SyncedBlockInfo::<Block>::decode(&mut &raw[..])
+					.map_err(|e| format!("{:?}", e))?;
 				Ok(Some(info))
-			},
+			}
 			None => Ok(None),
 		}
 	}
 
-	pub fn write_last_synced_block(&self, hash: &Block::Hash, number: &NumberFor<Block>) -> Result<(), String> {
+	pub fn write_last_synced_block(
+		&self,
+		hash: &Block::Hash,
+		number: &NumberFor<Block>,
+	) -> Result<(), String> {
 		let info = SyncedBlockInfo::<Block> {
 			hash: hash.clone(),
 			number: number.clone(),
@@ -153,16 +170,22 @@ impl<Block: BlockT> MetaDb<Block> {
 			&hash.encode(),
 		);
 
-		self.db.commit(transaction).map_err(|e| format!("{:?}", e))?;
+		self.db
+			.commit(transaction)
+			.map_err(|e| format!("{:?}", e))?;
 		Ok(())
 	}
 
 	pub fn get_synced_block_hash(&self, number: &NumberFor<Block>) -> Result<Block::Hash, String> {
-		match self.db.get(crate::columns::BLOCK_ID_MAPPING, &number.encode()) {
-			Some(raw) => {
-				Block::Hash::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e))
-			},
-			None => Err(format!("block {:?} not found in synced block hash!", number))
+		match self
+			.db
+			.get(crate::columns::BLOCK_ID_MAPPING, &number.encode())
+		{
+			Some(raw) => Block::Hash::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e)),
+			None => Err(format!(
+				"block {:?} not found in synced block hash!",
+				number
+			)),
 		}
 	}
 
@@ -170,12 +193,11 @@ impl<Block: BlockT> MetaDb<Block> {
 		log::debug!(target: "fc-db", "clear last synced block");
 		let mut transaction = sp_database::Transaction::new();
 
-		transaction.remove(
-			crate::columns::META,
-			crate::static_keys::LAST_SYNCED_BLOCK,
-		);
+		transaction.remove(crate::columns::META, crate::static_keys::LAST_SYNCED_BLOCK);
 
-		self.db.commit(transaction).map_err(|e| format!("{:?}", e))?;
+		self.db
+			.commit(transaction)
+			.map_err(|e| format!("{:?}", e))?;
 		Ok(())
 	}
 
@@ -189,7 +211,9 @@ impl<Block: BlockT> MetaDb<Block> {
 			&tips.encode(),
 		);
 
-		self.db.commit(transaction).map_err(|e| format!("{:?}", e))?;
+		self.db
+			.commit(transaction)
+			.map_err(|e| format!("{:?}", e))?;
 
 		Ok(())
 	}
@@ -197,7 +221,9 @@ impl<Block: BlockT> MetaDb<Block> {
 	pub fn remove_block(&self, info: &SyncedBlockInfo<Block>) -> Result<(), String> {
 		let mut transaction = sp_database::Transaction::new();
 		transaction.remove(crate::columns::BLOCK_ID_MAPPING, &info.number.encode());
-		self.db.commit(transaction).map_err(|e| format!("{:?}", e))?;
+		self.db
+			.commit(transaction)
+			.map_err(|e| format!("{:?}", e))?;
 		Ok(())
 	}
 }
@@ -222,13 +248,15 @@ pub struct MappingDb<Block: BlockT> {
 }
 
 impl<Block: BlockT> MappingDb<Block> {
-	pub fn block_hashes(
-		&self,
-		ethereum_block_hash: &H256,
-	) -> Result<Vec<Block::Hash>, String> {
-		match self.db.get(crate::columns::BLOCK_MAPPING, &ethereum_block_hash.encode()) {
-			Some(raw) => Ok(Vec::<Block::Hash>::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e))?),
-			None => Ok(Vec::new()),
+	pub fn block_hash(&self, ethereum_block_hash: &H256) -> Result<Option<Block::Hash>, String> {
+		match self
+			.db
+			.get(crate::columns::BLOCK_MAPPING, &ethereum_block_hash.encode())
+		{
+			Some(raw) => Ok(Some(
+				Block::Hash::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e))?,
+			)),
+			None => Ok(None),
 		}
 	}
 
@@ -236,17 +264,20 @@ impl<Block: BlockT> MappingDb<Block> {
 		&self,
 		block_hash: &Block::Hash,
 	) -> Result<H256, String> {
-		match self.db.get(crate::columns::BLOCK_HASH_MAPPING, &block_hash.encode()) {
+		match self
+			.db
+			.get(crate::columns::BLOCK_HASH_MAPPING, &block_hash.encode())
+		{
 			Some(raw) => Ok(H256::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e))?),
 			None => Err(format!("block hash not exist: {:?}", block_hash)),
 		}
 	}
 
-	pub fn eth_transactions(
-		&self,
-		eth_hash: &H256,
-	) -> Result<Vec<H256>, String> {
-		match self.db.get(crate::columns::ETH_BLOCK_TX_MAPPING, &eth_hash.encode()) {
+	pub fn eth_transactions(&self, eth_hash: &H256) -> Result<Vec<H256>, String> {
+		match self
+			.db
+			.get(crate::columns::ETH_BLOCK_TX_MAPPING, &eth_hash.encode())
+		{
 			Some(raw) => Ok(Vec::<H256>::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e))?),
 			None => Ok(Vec::new()),
 		}
@@ -256,26 +287,37 @@ impl<Block: BlockT> MappingDb<Block> {
 		&self,
 		ethereum_transaction_hash: &H256,
 	) -> Result<Vec<TransactionMetadata<Block>>, String> {
-		match self.db.get(crate::columns::TRANSACTION_MAPPING, &ethereum_transaction_hash.encode()) {
-			Some(raw) => Ok(Vec::<TransactionMetadata<Block>>::decode(&mut &raw[..]).map_err(|e| format!("{:?}", e))?),
+		match self.db.get(
+			crate::columns::TRANSACTION_MAPPING,
+			&ethereum_transaction_hash.encode(),
+		) {
+			Some(raw) => Ok(Vec::<TransactionMetadata<Block>>::decode(&mut &raw[..])
+				.map_err(|e| format!("{:?}", e))?),
 			None => Ok(Vec::new()),
 		}
 	}
 
-	pub fn write_hashes(
-		&self,
-		commitment: MappingCommitment<Block>,
-	) -> Result<(), String> {
+	pub fn write_none(&self, block_hash: Block::Hash) -> Result<(), String> {
 		let _lock = self.write_lock.lock();
 
 		let mut transaction = sp_database::Transaction::new();
 
-		let mut block_hashes = self.block_hashes(&commitment.ethereum_block_hash)?;
-		block_hashes.push(commitment.block_hash);
+		self.db
+			.commit(transaction)
+			.map_err(|e| format!("{:?}", e))?;
+
+		Ok(())
+	}
+
+	pub fn write_hashes(&self, commitment: MappingCommitment<Block>) -> Result<(), String> {
+		let _lock = self.write_lock.lock();
+
+		let mut transaction = sp_database::Transaction::new();
+
 		transaction.set(
 			crate::columns::BLOCK_MAPPING,
 			&commitment.ethereum_block_hash.encode(),
-			&block_hashes.encode()
+			&commitment.block_hash.encode(),
 		);
 
 		transaction.set(
@@ -292,7 +334,11 @@ impl<Block: BlockT> MappingDb<Block> {
 			);
 		}
 
-		for (i, ethereum_transaction_hash) in commitment.ethereum_transaction_hashes.into_iter().enumerate() {
+		for (i, ethereum_transaction_hash) in commitment
+			.ethereum_transaction_hashes
+			.into_iter()
+			.enumerate()
+		{
 			let mut metadata = self.transaction_metadata(&ethereum_transaction_hash)?;
 			metadata.push(TransactionMetadata::<Block> {
 				block_hash: commitment.block_hash,
@@ -306,13 +352,15 @@ impl<Block: BlockT> MappingDb<Block> {
 			);
 		}
 
-		self.db.commit(transaction).map_err(|e| format!("{:?}", e))?;
+		self.db
+			.commit(transaction)
+			.map_err(|e| format!("{:?}", e))?;
 
 		Ok(())
 	}
 
 	/// remove mapped data by the block hash
-	pub fn rollback_block_by_id(&self, hash: &Block::Hash) -> Result<(), String>{
+	pub fn rollback_block_by_id(&self, hash: &Block::Hash) -> Result<(), String> {
 		let eth_block_hash = self.eth_block_hash_from_substrate_hash(hash)?;
 
 		let txes = self.eth_transactions(&eth_block_hash)?;
@@ -320,22 +368,15 @@ impl<Block: BlockT> MappingDb<Block> {
 		let mut transaction = sp_database::Transaction::new();
 
 		for tx in txes {
-			transaction.remove(
-				crate::columns::TRANSACTION_MAPPING,
-				&tx.encode(),
-			);
+			transaction.remove(crate::columns::TRANSACTION_MAPPING, &tx.encode());
 		}
 
-		transaction.remove(
-			crate::columns::BLOCK_MAPPING,
-			&eth_block_hash.encode(),
-		);
-		transaction.remove(
-			crate::columns::BLOCK_HASH_MAPPING,
-			&hash.encode(),
-		);
+		transaction.remove(crate::columns::BLOCK_MAPPING, &eth_block_hash.encode());
+		transaction.remove(crate::columns::BLOCK_HASH_MAPPING, &hash.encode());
 
-		self.db.commit(transaction).map_err(|e| format!("{:?}", e))?;
+		self.db
+			.commit(transaction)
+			.map_err(|e| format!("{:?}", e))?;
 
 		Ok(())
 	}

@@ -30,7 +30,7 @@ use frame_support::{
 };
 use sp_std::prelude::*;
 use frame_system::ensure_none;
-use frame_support::{ensure, traits::UnfilteredDispatchable};
+use frame_support::ensure;
 use ethereum_types::{H160, H64, H256, U256, Bloom, BloomInput};
 use sp_runtime::{
 	transaction_validity::{
@@ -96,8 +96,6 @@ pub trait Config: frame_system::Config<Hash=H256> + pallet_balances::Config + pa
 	type FindAuthor: FindAuthor<H160>;
 	/// How Ethereum state root is calculated.
 	type StateRoot: Get<H256>;
-	/// The block gas limit. Can be a simple constant, or an adjustment algorithm in another pallet.
-	type BlockGasLimit: Get<U256>;
 }
 
 decl_storage! {
@@ -115,7 +113,7 @@ decl_storage! {
 	add_extra_genesis {
 		build(|_config: &GenesisConfig| {
 			// Calculate the ethereum genesis block
-			<Module<T>>::store_block(false);
+			<Module<T>>::store_block(false, U256::zero());
 
 			// Initialize the storage schema at the well known key.
 			frame_support::storage::unhashed::put::<EthereumStorageSchema>(&PALLET_ETHEREUM_SCHEMA, &EthereumStorageSchema::V1);
@@ -159,6 +157,11 @@ decl_module! {
 		fn on_finalize(n: T::BlockNumber) {
 			<Module<T>>::store_block(
 				fp_consensus::find_pre_log(&frame_system::Module::<T>::digest()).is_err(),
+				U256::from(
+					UniqueSaturatedInto::<u128>::unique_saturated_into(
+						frame_system::Module::<T>::block_number()
+					)
+				),
 			);
 		}
 
@@ -185,6 +188,7 @@ enum TransactionValidationError {
 	UnknownError,
 	InvalidChainId,
 	InvalidSignature,
+	InvalidGasLimit,
 }
 
 impl<T: Config> frame_support::unsigned::ValidateUnsigned for Module<T> {
@@ -200,6 +204,10 @@ impl<T: Config> frame_support::unsigned::ValidateUnsigned for Module<T> {
 
 			let origin = Self::recover_signer(&transaction)
 				.ok_or_else(|| InvalidTransaction::Custom(TransactionValidationError::InvalidSignature as u8))?;
+
+			if transaction.gas_limit >= T::BlockGasLimit::get() {
+				return InvalidTransaction::Custom(TransactionValidationError::InvalidGasLimit as u8).into();
+			}
 
 			let account_data = pallet_evm::Module::<T>::account_basic(&origin);
 
@@ -217,12 +225,20 @@ impl<T: Config> frame_support::unsigned::ValidateUnsigned for Module<T> {
 				return InvalidTransaction::Payment.into();
 			}
 
-			if transaction.gas_price < T::FeeCalculator::min_gas_price() {
+			let min_gas_price = T::FeeCalculator::min_gas_price();
+
+			if transaction.gas_price < min_gas_price {
 				return InvalidTransaction::Payment.into();
 			}
 
 			let mut builder = ValidTransactionBuilder::default()
-				.and_provides((origin, transaction.nonce));
+				.and_provides((origin, transaction.nonce))
+				.priority(if min_gas_price == U256::zero() {
+						0
+					} else {
+						let target_gas = (transaction.gas_limit * transaction.gas_price) / min_gas_price;
+						T::GasWeightMapping::gas_to_weight(target_gas.unique_saturated_into())
+				});
 
 			if transaction.nonce > account_data.nonce {
 				if let Some(prev_nonce) = transaction.nonce.checked_sub(1.into()) {
@@ -250,7 +266,7 @@ impl<T: Config> Module<T> {
 		Some(H160::from(H256::from_slice(Keccak256::digest(&pubkey).as_slice())))
 	}
 
-	fn store_block(post_log: bool) {
+	fn store_block(post_log: bool, block_number: U256) {
 		let mut transactions = Vec::new();
 		let mut statuses = Vec::new();
 		let mut receipts = Vec::new();
@@ -276,11 +292,7 @@ impl<T: Config> Module<T> {
 			), // TODO: check receipts hash.
 			logs_bloom,
 			difficulty: U256::zero(),
-			number: U256::from(
-				UniqueSaturatedInto::<u128>::unique_saturated_into(
-					frame_system::Module::<T>::block_number()
-				)
-			),
+			number: block_number,
 			gas_limit: T::BlockGasLimit::get(),
 			gas_used: receipts.clone().into_iter().fold(U256::zero(), |acc, r| acc + r.used_gas),
 			timestamp: UniqueSaturatedInto::<u64>::unique_saturated_into(

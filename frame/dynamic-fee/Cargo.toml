@@ -1,19 +1,20 @@
 [package]
 name = "pallet-dynamic-fee"
-version = "0.1.0-clover"
+version = "1.0.1-clover"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
 description = "Dynamic fee handling for EVM."
 license = "Apache-2.0"
 
 [dependencies]
+pallet-evm = { path = "../evm", version = "3.0.1-clover", default-features = false }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 serde = { version = "1.0.101", optional = true }
-sp-std = { git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
-sp-core = { git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
-sp-runtime = { git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
-sp-inherents = { git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
-frame-system = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
+sp-inherents = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
+frame-system = {  default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
 
 [features]
@@ -27,4 +28,5 @@ std = [
 	"sp-inherents/std",
 	"frame-system/std",
 	"frame-support/std",
+	"pallet-evm/std",
 ]

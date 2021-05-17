@@ -1,6 +1,6 @@
 [package]
 name = "fp-rpc"
-version = "0.1.0-clover"
+version = "1.0.1-clover"
 authors = ["Parity Technologies <admin@parity.io"]
 edition = "2018"
 description = "Runtime primitives for Ethereum RPC (web3) compatibility layer for Substrate."

@@ -1,6 +1,6 @@
 [package]
 name = "pallet-ethereum"
-version = "0.1.0-clover"
+version = "1.0.1-clover"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
 description = "Ethereum compatibility full block processing emulation pallet for Substrate."
@@ -19,15 +19,15 @@ sp-runtime = {  default-features = false, git = "https://github.com/paritytech/s
 sp-std = {  default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
 sp-io = {  default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
 fp-evm = { default-features = false, path = "../../primitives/evm" }
-evm = { git = "https://github.com/clover-network/evm.git", tag = "v0.24.0-clover", default-features = false, features = ["with-codec"] }
+evm = { git = "https://github.com/clover-network/evm.git", tag = "v0.26.1-clover", default-features = false, features = ["with-codec"] }
 ethereum = { version = "0.7.1", default-features = false, features = ["with-codec"] }
 ethereum-types = { version = "0.11", default-features = false }
 rlp = { version = "0.5", default-features = false }
 sha3 = { version = "0.8", default-features = false }
 libsecp256k1 = { version = "0.3", default-features = false }
-fp-consensus = { path = "../../primitives/consensus", default-features = false }
-fp-rpc = { path = "../../primitives/rpc", default-features = false }
-fp-storage = { path = "../../primitives/storage", default-features = false}
+fp-consensus = { version = "1.0.0-clover", path = "../../primitives/consensus", default-features = false }
+fp-rpc = { version = "1.0.1-clover", path = "../../primitives/rpc", default-features = false }
+fp-storage = { version = "1.0.1-clover", path = "../../primitives/storage", default-features = false}
 
 [dev-dependencies]
 sp-core = {  git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }

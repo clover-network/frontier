@@ -21,15 +21,15 @@ use super::*;
 
 use crate as pallet_evm;
 
-use std::{str::FromStr, collections::BTreeMap};
 use frame_support::{
-	assert_ok, parameter_types,
+	assert_ok, impl_outer_dispatch, impl_outer_origin, parameter_types, traits::GenesisBuild,
 };
 use sp_core::{Blake2Hasher, H256};
 use sp_runtime::{
 	testing::Header,
 	traits::{BlakeTwo256, IdentityLookup},
 };
+use std::{collections::BTreeMap, str::FromStr};
 
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
@@ -106,31 +106,20 @@ impl Config for Test {
 
 	type Event = ();
 	type Precompiles = ();
+	type BanlistChecker = ();
 	type ChainId = ();
+	type BlockGasLimit = ();
 	type OnChargeTransaction = ();
 }
 
-//type System = frame_system::Module<Test>;
-//type Balances = pallet_balances::Module<Test>;
-//type EVM = Module<Test>;
-
-type UncheckedExtrinsic = frame_system::mocking::MockUncheckedExtrinsic<Test>;
-type Block = frame_system::mocking::MockBlock<Test>;
-
-frame_support::construct_runtime!(
-	pub enum Test where
-		Block = Block,
-		NodeBlock = Block,
-		UncheckedExtrinsic = UncheckedExtrinsic
-	{
-		System: frame_system::{Module, Call, Config, Storage, Event<T>},
-		Balances: pallet_balances::{Module, Call, Storage, Config<T>, Event<T>},
-		EVM: pallet_evm::{Module, Call, Storage, Config, Event<T>},
-	}
-);
+type System = frame_system::Pallet<Test>;
+type Balances = pallet_balances::Pallet<Test>;
+type EVM = Pallet<Test>;
 
 pub fn new_test_ext() -> sp_io::TestExternalities {
-	let mut t = frame_system::GenesisConfig::default().build_storage::<Test>().unwrap();
+	let mut t = frame_system::GenesisConfig::default()
+		.build_storage::<Test>()
+		.unwrap();
 
 	let mut accounts = BTreeMap::new();
 	accounts.insert(
@@ -142,7 +131,7 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			code: vec![
 				0x00, // STOP
 			],
-		}
+		},
 	);
 	accounts.insert(
 		H160::from_str("1000000000000000000000000000000000000002").unwrap(),
@@ -153,11 +142,14 @@ pub fn new_test_ext() -> sp_io::TestExternalities {
 			code: vec![
 				0xff, // INVALID
 			],
-		}
+		},
 	);
 
-	pallet_balances::GenesisConfig::<Test>::default().assimilate_storage(&mut t).unwrap();
-	pallet_evm::GenesisConfig { accounts }.assimilate_storage::<Test>(&mut t).unwrap();
+	pallet_balances::GenesisConfig::<Test>::default()
+		.assimilate_storage(&mut t)
+		.unwrap();
+	<GenesisConfig as GenesisBuild<Test>>::assimilate_storage(&GenesisConfig { accounts }, &mut t)
+		.unwrap();
 	t.into()
 }
 

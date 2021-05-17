@@ -34,8 +34,6 @@ use sp_runtime::{
 };
 use sp_runtime::AccountId32;
 
-<<<<<<< HEAD
-=======
 impl_outer_origin! {
 	pub enum Origin for Test where system = frame_system {}
 }
@@ -57,7 +55,6 @@ impl frame_support::traits::PalletInfo for PalletInfo {
 // configuration traits of pallets we want to use.
 #[derive(Clone, Eq, PartialEq)]
 pub struct Test;
->>>>>>> polka/master
 parameter_types! {
 	pub const BlockHashCount: u64 = 250;
 	pub BlockWeights: frame_system::limits::BlockWeights =
@@ -136,6 +133,7 @@ parameter_types! {
 	pub const TransactionByteFee: u64 = 1;
 	pub const ChainId: u64 = 42;
 	pub const EVMModuleId: ModuleId = ModuleId(*b"py/evmpa");
+	pub const BlockGasLimit: U256 = U256::MAX;
 }
 
 pub struct HashedAddressMapping;
@@ -162,19 +160,16 @@ impl pallet_evm::Config for Test {
 	type Event = ();
 	type Precompiles = ();
 	type Runner = pallet_evm::runner::stack::Runner<Self>;
+	type BanlistChecker = ();
 	type ChainId = ChainId;
+	type BlockGasLimit = BlockGasLimit;
 	type OnChargeTransaction = ();
-}
-
-parameter_types! {
-	pub const BlockGasLimit: U256 = U256::MAX;
 }
 
 impl Config for Test {
 	type Event = ();
 	type FindAuthor = EthereumFindAuthor;
 	type StateRoot = IntermediateStateRoot;
-	type BlockGasLimit = BlockGasLimit;
 }
 
 //pub type System = frame_system::Module<Test>;

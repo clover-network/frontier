@@ -1,13 +1,14 @@
 [package]
 name = "frontier-template-node"
-version = "3.0.0-dev"
+version = "0.0.0"
 authors = ["Parity Technologies <admin@parity.io>"]
-description = "Substrate Node template"
+description = "Frontier Node template"
 edition = "2018"
 license = "Unlicense"
 build = "build.rs"
 homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/substrate/"
+repository = "https://github.com/paritytech/frontier/"
+publish = false
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]

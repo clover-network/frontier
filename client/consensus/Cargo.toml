@@ -1,6 +1,6 @@
 [package]
 name = "fc-consensus"
-version = "0.1.0-clover"
+version = "1.0.1-clover"
 authors = ["Parity Technologies <admin@parity.io>"]
 description = "Frontier consensus for substrate"
 edition = "2018"

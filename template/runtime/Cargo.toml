@@ -1,11 +1,12 @@
 [package]
 name = "frontier-template-runtime"
-version = "3.0.0-dev"
+version = "0.0.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
 license = "Unlicense"
 homepage = "https://substrate.dev"
-repository = "https://github.com/paritytech/substrate/"
+repository = "https://github.com/paritytech/frontier/"
+publish = false
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
@@ -21,8 +22,11 @@ frame-system-rpc-runtime-api = {  default-features = false, git = "https://githu
 
 pallet-ethereum = { default-features = false, path = "../../frame/ethereum" }
 pallet-evm = {  default-features = false, path = "../../frame/evm" }
-pallet-evm-precompile-simple = {  default-features = false, path = "../../frame/evm/precompile/simple" }
-pallet-evm-precompile-sha3fips = {  default-features = false, path = "../../frame/evm/precompile/sha3fips" }
+pallet-dynamic-fee = { default-features = false, path = "../../frame/dynamic-fee" }
+pallet-evm-precompile-simple = { default-features = false, path = "../../frame/evm/precompile/simple" }
+pallet-evm-precompile-sha3fips = { default-features = false, path = "../../frame/evm/precompile/sha3fips" }
+pallet-evm-precompile-modexp = { default-features = false, path = "../../frame/evm/precompile/modexp" }
+
 pallet-aura = {  default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
 pallet-balances = {  default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
 pallet-grandpa = {  default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
@@ -47,9 +51,8 @@ sp-version = {  default-features = false, git = "https://github.com/paritytech/s
 
 fp-rpc = { default-features = false, path = "../../primitives/rpc" }
 
-[build-dependencies.wasm-builder-runner]
-package = 'substrate-wasm-builder-runner'
-version = '1.0.5'
+[build-dependencies]
+substrate-wasm-builder = "3.0.0"
 
 [features]
 default = ["std", "aura"]
@@ -67,6 +70,7 @@ std = [
 
 	"pallet-ethereum/std",
 	"pallet-evm/std",
+	"pallet-dynamic-fee/std",
 	"pallet-evm-precompile-simple/std",
 	"pallet-evm-precompile-sha3fips/std",
 	"pallet-aura/std",

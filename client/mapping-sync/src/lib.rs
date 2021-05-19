@@ -64,7 +64,7 @@ pub fn sync_genesis_block<Block: BlockT, C>(
 {
 	let id = BlockId::Hash(header.hash());
 
-	let has_api = client.runtime_api().has_api::<dyn EthereumRuntimeRPCApi<Block, Error = ()>>(&id)
+	let has_api = client.runtime_api().has_api::<dyn EthereumRuntimeRPCApi<Block>>(&id)
 		.map_err(|e| format!("{:?}", e))?;
 
 	if has_api {

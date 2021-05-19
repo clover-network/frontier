@@ -10,12 +10,13 @@ license = "Apache-2.0"
 pallet-evm = { path = "../evm", version = "3.0.1-clover", default-features = false }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
 serde = { version = "1.0.101", optional = true }
-sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
-sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
-sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
-sp-inherents = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
-frame-system = {  default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
-frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0" }
+sp-std = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.1" }
+sp-core = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.1" }
+sp-runtime = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.1" }
+sp-inherents = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.1" }
+frame-system = {  default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.1" }
+frame-support = { default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.1" }
+async-trait = "0.1.50"
 
 [features]
 default = ["std"]

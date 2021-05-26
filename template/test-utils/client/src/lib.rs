@@ -13,6 +13,7 @@ sc_executor::native_executor_instance! {
 pub type Backend = substrate_test_client::Backend<runtime::opaque::Block>;
 
 pub type Executor = client::LocalCallExecutor<
+	runtime::opaque::Block,
 	Backend,
 	NativeExecutor<LocalExecutor>,
 >;
@@ -22,11 +23,12 @@ pub type LightBackend = substrate_test_client::LightBackend<runtime::opaque::Blo
 pub type LightExecutor = sc_light::GenesisCallExecutor<
 	LightBackend,
 	client::LocalCallExecutor<
+		runtime::opaque::Block,
 		sc_light::Backend<
 			sc_client_db::light::LightStorage<runtime::opaque::Block>,
 			HashFor<runtime::opaque::Block>
 		>,
-		NativeExecutor<LocalExecutor>
+		NativeExecutor<LocalExecutor>,
 	>
 >;
 
@@ -51,7 +53,7 @@ pub type TestClientBuilder<E, B> = substrate_test_client::TestClientBuilder<
 /// Test client type with `LocalExecutor` and generic Backend.
 pub type Client<B> = client::Client<
 	B,
-	client::LocalCallExecutor<B, sc_executor::NativeExecutor<LocalExecutor>>,
+	client::LocalCallExecutor<runtime::opaque::Block, B, sc_executor::NativeExecutor<LocalExecutor>>,
 	runtime::opaque::Block,
 	runtime::RuntimeApi,
 >;
@@ -86,11 +88,10 @@ pub trait TestClientBuilderExt<B>: Sized {
 }
 
 impl<B> TestClientBuilderExt<B> for TestClientBuilder<
-	client::LocalCallExecutor<B, sc_executor::NativeExecutor<LocalExecutor>>,
+	client::LocalCallExecutor<runtime::opaque::Block, B, sc_executor::NativeExecutor<LocalExecutor>>,
 	B
 > where
 	B: sc_client_api::backend::Backend<runtime::opaque::Block> + 'static,
-	// Rust bug: https://github.com/rust-lang/rust/issues/24159
 	<B as sc_client_api::backend::Backend<runtime::opaque::Block>>::State:
 		sp_api::StateBackend<HashFor<runtime::opaque::Block>>,
 {

@@ -39,15 +39,10 @@ type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 
 #[cfg(feature = "aura")]
 pub type ConsensusResult = (
-	sc_consensus_aura::AuraBlockImport<
+	FrontierBlockImport<
 		Block,
-		FullClient,
-		FrontierBlockImport<
-			Block,
-			sc_finality_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
-			FullClient
-		>,
-		AuraPair
+		sc_finality_grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>,
+		FullClient
 	>,
 	sc_finality_grandpa::LinkHalf<Block, FullClient, FullSelectChain>
 );
@@ -183,16 +178,12 @@ pub fn new_partial(config: &Configuration, #[allow(unused_variables)] cli: &Cli)
 			frontier_backend.clone(),
 		);
 
-		let aura_block_import = sc_consensus_aura::AuraBlockImport::<_, _, _, AuraPair>::new(
-			frontier_block_import, client.clone(),
-		);
-
 		let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 		let raw_slot_duration = slot_duration.slot_duration();
 
 		let import_queue = sc_consensus_aura::import_queue::<AuraPair, _, _, _, _, _, _>(
 			ImportQueueParams {
-				block_import: aura_block_import.clone(),
+				block_import: frontier_block_import.clone(),
 				justification_import: Some(Box::new(grandpa_block_import.clone())),
 				client: client.clone(),
 				create_inherent_data_providers: move |_, ()| async move {
@@ -217,7 +208,7 @@ pub fn new_partial(config: &Configuration, #[allow(unused_variables)] cli: &Cli)
 		Ok(sc_service::PartialComponents {
 			client, backend, task_manager, import_queue, keystore_container,
 			select_chain, transaction_pool,
-			other: ((aura_block_import, grandpa_link), pending_transactions, filter_pool, frontier_backend, telemetry)
+			other: ((frontier_block_import, grandpa_link), pending_transactions, filter_pool, frontier_backend, telemetry)
 		})
 	}
 }

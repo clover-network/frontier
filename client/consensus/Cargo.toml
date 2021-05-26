@@ -9,20 +9,20 @@ repository = "https://github.com/paritytech/frontier/"
 
 [dependencies]
 codec = { package = "parity-scale-codec", version = "2.0.0", features = ["derive"] }
-sp-core = {  git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3" }
-sp-blockchain = {  git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3" }
-sp-runtime = {  git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3" }
-sp-api = {  git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3" }
-sc-client-api = {  git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3" }
-sp-block-builder = {  git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3" }
-sp-inherents = {  git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3" }
+sp-core = {  git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-blockchain = {  git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-runtime = {  git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-api = {  git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sc-client-api = {  git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-block-builder = {  git = "https://github.com/paritytech/substrate.git", branch = "master" }
+sp-inherents = {  git = "https://github.com/paritytech/substrate.git", branch = "master" }
 fp-consensus = { path = "../../primitives/consensus" }
 fp-rpc = { path = "../../primitives/rpc" }
-sp-consensus = { git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3" }
+sp-consensus = { git = "https://github.com/paritytech/substrate.git", branch = "master" }
 fc-db = { path = "../db" }
 log = "0.4.8"
 futures = { version = "0.3.1", features = ["compat"] }
-sp-timestamp = {  git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3" }
+sp-timestamp = {  git = "https://github.com/paritytech/substrate.git", branch = "master" }
 derive_more = "0.99.2"
-prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.3"}
+prometheus-endpoint = { package = "substrate-prometheus-endpoint", git = "https://github.com/paritytech/substrate.git", branch = "master"}
 async-trait = "0.1.42"

@@ -12,7 +12,7 @@ description = "Test vector support for EVM pallet."
 hex = { version = "0.4.0", optional = true }
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 serde_json = { version = "1.0", optional = true }
-evm = { git = "https://github.com/clover-network/evm.git", tag = "v0.26.1-clover", default-features = false, features = ["with-codec"] }
+evm = { git = "https://github.com/clover-network/evm.git", tag = "v0.27.1-clover", default-features = false, features = ["with-codec"] }
 fp-evm = { default-features = false, path = "../../../primitives/evm" }
 
 [features]

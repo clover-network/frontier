@@ -1,6 +1,6 @@
 [package]
 name = "fp-consensus"
-version = "1.0.0-clover"
+version = "1.0.1-clover"
 authors = ["Parity Technologies <admin@parity.io>"]
 description = "Primitives for Frontier consensus"
 edition = "2018"

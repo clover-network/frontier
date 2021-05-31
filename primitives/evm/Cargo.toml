@@ -1,6 +1,6 @@
 [package]
 name = "fp-evm"
-version = "1.0.1-clover"
+version = "2.0.0-clover"
 license = "Apache-2.0"
 authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2018"
@@ -17,7 +17,7 @@ sp-core = { git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0",
 sp-std = { git = "https://github.com/paritytech/substrate.git", tag = "v3.0.0", default-features = false }
 serde = { version = "1.0.101", optional = true, features = ["derive"] }
 codec = { package = "parity-scale-codec", version = "2.0.0", default-features = false }
-evm = { git = "https://github.com/clover-network/evm.git", tag = "v0.26.1-clover", default-features = false, features = ["with-codec"] }
+evm = { git = "https://github.com/clover-network/evm.git", tag = "v0.27.1-clover", default-features = false, features = ["with-codec"] }
 impl-trait-for-tuples = "0.1"
 
 [features]

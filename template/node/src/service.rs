@@ -228,7 +228,7 @@ pub fn new_full(
 
 	config.network.extra_sets.push(sc_finality_grandpa::grandpa_peers_set_config());
 
-	let (network, network_status_sinks, system_rpc_tx, network_starter) =
+	let (network, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
 			config: &config,
 			client: client.clone(),
@@ -307,7 +307,7 @@ pub fn new_full(
 		task_manager: &mut task_manager,
 		on_demand: None,
 		remote_blockchain: None,
-		backend, network_status_sinks, system_rpc_tx, config, telemetry: telemetry.as_mut(),
+		backend, system_rpc_tx, config, telemetry: telemetry.as_mut(),
 	})?;
 
 	// Spawn Frontier EthFilterApi maintenance task.
@@ -451,7 +451,7 @@ pub fn new_full(
 				name: Some(name),
 				observer_enabled: false,
 				keystore,
-				is_authority: role.is_authority(),
+				local_role: role.clone(),
 				telemetry: telemetry.as_ref().map(|x| x.handle()),
 			};
 
@@ -560,7 +560,7 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 
 	let rpc_extensions = crate::rpc::create_light(light_deps);
 
-	let (network, network_status_sinks, system_rpc_tx, network_starter) =
+	let (network, system_rpc_tx, network_starter) =
 		sc_service::build_network(sc_service::BuildNetworkParams {
 			config: &config,
 			client: client.clone(),
@@ -588,7 +588,6 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 		keystore: keystore_container.sync_keystore(),
 		backend,
 		network,
-		network_status_sinks,
 		system_rpc_tx,
 		telemetry: telemetry.as_mut(),
 	})?;

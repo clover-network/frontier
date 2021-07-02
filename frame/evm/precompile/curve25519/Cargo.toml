@@ -10,9 +10,9 @@ description = "Curve25519 elliptic curve precompiles for EVM pallet."
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sp-core = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.4" }
-sp-io = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.4" }
-frame-support = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.4" }
+sp-core = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.7" }
+sp-io = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.7" }
+frame-support = { version = "3.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.7" }
 pallet-evm = { version = "3.0.1-clover", default-features = false, path = "../.." }
 fp-evm = { version = "1.0.1-clover", default-features = false, path = "../../../../primitives/evm" }
 evm = { git = "https://github.com/clover-network/evm.git", tag = "v0.26.1-clover", default-features = false, features = ["with-codec"] }

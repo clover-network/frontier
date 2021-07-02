@@ -236,6 +236,7 @@ parameter_types! {
 	// For weight estimation, we assume that the most locks on an individual account will be 50.
 	// This number may need to be adjusted in the future if this assumption no longer holds true.
 	pub const MaxLocks: u32 = 50;
+	pub const MaxReserves: u32 = 50;
 }
 
 impl pallet_balances::Config for Runtime {
@@ -247,6 +248,8 @@ impl pallet_balances::Config for Runtime {
 	type DustRemoval = ();
 	type ExistentialDeposit = ExistentialDeposit;
 	type AccountStore = System;
+	type MaxReserves = MaxReserves;
+	type ReserveIdentifier = [u8; 8];
 	type WeightInfo = ();
 }
 
@@ -320,6 +323,8 @@ impl pallet_ethereum::Config for Runtime {
 frame_support::parameter_types! {
 	pub BoundDivision: U256 = U256::from(1024);
 }
+
+impl pallet_randomness_collective_flip::Config for Runtime {}
 
 impl pallet_dynamic_fee::Config for Runtime {
 	type Event = Event;

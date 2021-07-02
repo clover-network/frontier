@@ -128,7 +128,7 @@ pub fn new_partial(config: &Configuration, #[allow(unused_variables)] cli: &Cli)
 		config.transaction_pool.clone(),
 		config.role.is_authority().into(),
 		config.prometheus_registry(),
-		task_manager.spawn_handle(),
+		task_manager.spawn_essential_handle(),
 		client.clone(),
 	);
 
@@ -405,7 +405,7 @@ pub fn new_full(
 			let slot_duration = sc_consensus_aura::slot_duration(&*client)?;
 			let raw_slot_duration = slot_duration.slot_duration();
 
-			let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _,  _, _, _, _>(
+			let aura = sc_consensus_aura::start_aura::<AuraPair, _, _, _, _, _, _,  _, _, _, _, _>(
 				StartAuraParams {
 					slot_duration: sc_consensus_aura::slot_duration(&*client)?,
 					client: client.clone(),
@@ -427,6 +427,7 @@ pub fn new_full(
 					backoff_authoring_blocks: backoff_authoring_blocks,
 					keystore: keystore_container.sync_keystore(),
 					can_author_with,
+					justification_sync_link: network.clone(),
 					block_proposal_slot_portion: SlotProportion::new(2f32 / 3f32),
 					telemetry: telemetry.as_ref().map(|x| x.handle()),
 				}
@@ -512,7 +513,7 @@ pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let transaction_pool = Arc::new(sc_transaction_pool::BasicPool::new_light(
 		config.transaction_pool.clone(),
 		config.prometheus_registry(),
-		task_manager.spawn_handle(),
+		task_manager.spawn_essential_handle(),
 		client.clone(),
 		on_demand.clone(),
 	));
